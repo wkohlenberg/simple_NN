@@ -5,13 +5,13 @@ BINDIR		= bin
 OUTDIR		= output
 SRCDIR		= src
 
-LFLAGS		:= 
+LFLAGS		:= -lm
 CXXFLAGS	:= -std=c++11
 
 main:
 	mkdir -p $(BINDIR)
 	mkdir -p $(OUTDIR)	
-	$(CXX) $(SRCDIR)/main.cpp -o $(BINDIR)/neural -Wall $(CXXFLAGS)
+	$(CXX) $(SRCDIR)/main.cpp $(SRCDIR)/mnist.cpp -o $(BINDIR)/neural -Wall $(CXXFLAGS) $(LFLAGS)
 
 clean:
 	rm -rf $(BINDIR)/neural $(OUTDIR)
