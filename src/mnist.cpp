@@ -2,7 +2,7 @@
 #include <fstream>
 #include <stdint.h>
 #include <vector>
-#include <string> 
+#include <string>
 
 using namespace std;
 
@@ -34,15 +34,15 @@ int readLabels(vector<int>&vLabels, bool training)
 		samples = 10000;
 	}
 
-	// Open the label file, training or test 
-	ifstream labelFile; 
+	// Open the label file, training or test
+	ifstream labelFile;
 	labelFile.open(filePath.c_str());
 	if (!labelFile.is_open())
 	{
 		cout << "Couldn't open or find the file." << endl;
 		return 1;
 	}
-	
+
 	// Read the header
 	uint32_t magic;
 	uint32_t nLabels;
@@ -60,7 +60,7 @@ int readLabels(vector<int>&vLabels, bool training)
 	{
 		labelFile.read(reinterpret_cast<char *>(&label), sizeof(label));
 		vLabels.push_back(int(label));
-	}		
+	}
 
 	return 0;
 }
@@ -69,7 +69,7 @@ int readImages(vector<vector<int> >&vImages, bool training=true)
 {
 	string filePath = "../database/";
 	int samples = 0;
-	
+
 	if (training)
 	{
 		filePath.append("train-images-idx3-ubyte");
@@ -99,7 +99,7 @@ int readImages(vector<vector<int> >&vImages, bool training=true)
 	imageFile.read(reinterpret_cast<char *>(&magic), sizeof(magic));
 	imageFile.read(reinterpret_cast<char *>(&nImages), sizeof(nImages));
 	imageFile.read(reinterpret_cast<char *>(&rows), sizeof(rows));
-	imageFile.read(reinterpret_cast<char *>(&columns), sizeof(columns));	
+	imageFile.read(reinterpret_cast<char *>(&columns), sizeof(columns));
 
 	if(!((endianSwap(magic) == 2051) && (endianSwap(nImages) == samples)))
 	{
@@ -107,10 +107,10 @@ int readImages(vector<vector<int> >&vImages, bool training=true)
 		return 2;
 	}
 
-	
+
 	vector<int> temp;
 	int pixelsImg = endianSwap(rows) * endianSwap(columns);
-	
+
 	for (int y = 0; y < samples; y++)
 	{
 		for (int x = 0; x < pixelsImg; x++)
@@ -128,12 +128,14 @@ int readImages(vector<vector<int> >&vImages, bool training=true)
 // Get input vector for the input neurons
 int getInput(vector<int> &input, vector<vector<int> > training, int index)
 {
-	for (unsigned n = 0; n < training[index].size(); n++)
+	input.clear();
+	unsigned size = training[index].size();
+	for (unsigned n = 0; n < size; n++)
 	{
 		input.push_back(training[index].at(n));
-	}	
+	}
 
-	return 0; 
+	return 0;
 }
 
 // Get output vector for the output neurons
@@ -141,7 +143,7 @@ int getOutput(vector<int> &output, vector<int> labels, int index)
 {
 	// Load vector ouput with zero's
 	fill (output.begin(), output.end(), 0);
-	
+
 	int label = labels.at(index);
 	for (unsigned i = 0; i < labels.size(); i++)
 	{
