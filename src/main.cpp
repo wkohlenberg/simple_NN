@@ -1,13 +1,13 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <typeinfo>
 
 #include "mnist.h"
 
 #define INPUTS		784
 #define HIDDEN		30
 #define OUTPUTS		10
-
 
 using namespace std;
 
@@ -33,6 +33,7 @@ public:
 	void calcOutputGradients(double targetVal);
 	void calcHiddenGradients(const Layer &nextLayer);
 	void updateInputWeights(Layer &prevLayer);
+	void getWeight(Layer &currLayer);
 
 private:
 	double randomWeight() { return rand() / double(RAND_MAX);}
@@ -47,6 +48,12 @@ private:
 
 double Neuron::eta = 0.15;
 double Neuron::alpha = 0.5;
+
+void Neuron::getWeight(Layer &currLayer)
+{
+	cout << currLayer[0].m_outputWeights[m_index].weight << endl;
+	cout << currLayer[0].m_outputWeights[m_index].deltaWeight << endl;
+}
 
 void Neuron::updateInputWeights(Layer &prevLayer)
 {
@@ -76,6 +83,8 @@ void Neuron::feedForward(const Layer &prevLayer)
 	}
 
 	m_outputVal = tanh(sum);
+	//cout << "OuputVal: " << prevLayer[1].getOutputVal() << endl;
+	//cout << "Weight: " << prevLayer[1].m_outputWeights[m_index].weight << endl;
 }
 
 void Neuron::calcHiddenGradients(const Layer &nextLayer)
@@ -176,7 +185,7 @@ int main()
 
 		for (unsigned i = 0; i < inputVals.size(); i++)
 		{
-			m_layers[0][i].setOutputVal(inputVals[i]);
+			m_layers[0][i].setOutputVal((double)inputVals[i]);
 		}
 
 		// Feedforward - count the inputs from the previous layer
@@ -196,8 +205,22 @@ int main()
 			resultVals.push_back(m_layers.back()[n].getOutputVal());
 		}
 
+		// Get the weigths and nodes values of the first nodes
+		// Show input values
+		for (unsigned i = 0; i < inputVals.size(); i++)
+		{
+			cout << m_layers[0][i].getOutputVal() << endl;
+		}
+
+		// Calc weight of the hidden node = sum(input*weight)
+		double sum =0.0;
+		for( unsigned i = 0; i < m_layers[0].size(); i++)
+		{
+			sum += m_layers[0][i].getOutputVal() * m_layers[0][i].m_outputWeights[m_index].weight;
+		}
+		cout << "Value of the first node of the hidden layer: " << sum << endl;
+
 		// Backpropagation by calculating the overall net error
-		// (RMS of output neuron errors)
 		Layer &outputLayer = m_layers.back();
 		double m_error = 0.0;
 
@@ -247,7 +270,7 @@ int main()
 		}
 
 		// Show output
-		cout << endl << k << " Label: " << endl;
+		cout << endl << 1 << " Label: " << endl;
 		vector<int>::iterator it;
 		for (it = targetVals.begin(); it < targetVals.end(); it++)
 		{
@@ -261,6 +284,8 @@ int main()
 			cout << *itr << " ";
 		}
 		cout << endl;
+
 	}
+
 	return 0;
 }
