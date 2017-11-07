@@ -79,26 +79,18 @@ void Neuron::calculateOutputGradient(double target, Layer &prevLayer)
     double delta = -(m_target - m_outputValue);
     m_gradient = delta * derivativeSigmoid(m_outputValue) * prevLayer[n].m_outputValue;
     prevLayer[n].m_outputWeight[m_index].deltaWeight = m_gradient * eta;
-    /*cout << "Delta: " << delta << endl;
-    cout << "deltaWeight: " << prevLayer[n].m_outputWeight[m_index].deltaWeight << endl;
-    cout << "Gradient: " << m_gradient << endl << endl;*/
   }
 }
 
-//void Neuron::calculateHiddenGradient(const Layer &nextLayer, double prevLayerOutput)
 void Neuron::calculateHiddenGradient(const Layer &nextLayer, Layer &prevLayer)
 {
   double sum = 0.;
   double delta = 0.;
 
-  //cout << "The next layer size: " << nextLayer.size() << endl;
   for (unsigned n = 0; n < nextLayer.size() - 1; n++)   // Exclude the bias node
   {
     delta = -(nextLayer[n].m_target - nextLayer[n].m_outputValue);
     sum += m_outputWeight[n].weight * derivativeSigmoid(nextLayer[n].m_outputValue) * delta;
-    /*cout << "Delta: " << delta << endl;
-    cout << "Weight: " << m_outputWeight[m_index].weight << endl;
-    cout << "Sig: " << derivativeSigmoid(nextLayer[n].m_outputValue) << endl << endl;*/
   }
 
   for (unsigned n = 0; n < prevLayer.size()-1; n++)
@@ -106,10 +98,6 @@ void Neuron::calculateHiddenGradient(const Layer &nextLayer, Layer &prevLayer)
     m_gradient = sum * Neuron::derivativeSigmoid(m_outputValue) * prevLayer[n].m_outputValue;
     prevLayer[n].m_outputWeight[m_index].deltaWeight = m_gradient*eta;
   }
-
-  /*cout << "Sum: " << sum << endl;
-  cout << "m_outputValue: " << m_outputValue << endl;
-  cout << "Gradient: " << m_gradient << endl;*/
 }
 
 void Neuron::feedForward(const Layer &prevLayer)
@@ -119,14 +107,9 @@ void Neuron::feedForward(const Layer &prevLayer)
   for (unsigned i = 0; i < prevLayer.size(); i++)
   {
     sum += prevLayer[i].getOutputVal() * prevLayer[i].m_outputWeight[m_index].weight;
-    /*cout << prevLayer[i].getOutputVal() << " * "
-         << prevLayer[i].m_outputWeight[m_index].weight << " = "
-         << prevLayer[i].getOutputVal() * prevLayer[i].m_outputWeight[m_index].weight
-         << endl;*/
   }
 
   m_outputValue = Neuron::sigmoid(sum);
-  //cout << "The neuron output is: " << Neuron::sigmoid(sum) << endl << endl;
 }
 
 Neuron::Neuron(unsigned outputs, unsigned index)
@@ -169,19 +152,15 @@ void Net::feedForward(const vector<double> &input)
   for (unsigned i = 0; i < input.size(); i++)
   {
     m_layers[0][i].setOutputVal(input[i]);
-    //cout << "Input neuron " << i << " has input value: " << m_layers[0][i].getOutputVal() << endl;
   }
 
   // Start @ the first hidden layer after the input layer
   // Per neuron calculate the output*weights of the last layer
   for (unsigned layerNum = 1; layerNum < m_layers.size(); layerNum++)
   {
-    //cout << "Layer: " << layerNum;
     Layer &prevLayer = m_layers[layerNum - 1];
     for (unsigned n = 0; n < m_layers[layerNum].size()-1; n++)
     {
-      // Call feedForward function from Neuron class
-      //cout << " - Neuron: " << n << endl;
       m_layers[layerNum][n].feedForward(prevLayer);
     }
   }
@@ -189,7 +168,6 @@ void Net::feedForward(const vector<double> &input)
 
 void Net::backPropagation(const vector<double> &target)
 {
-  //cout << "Output neurons" << endl;
   for (unsigned n = 0; n < m_layers.back().size()-1; n++)
   {
     Layer &prevLayer = m_layers[1];
@@ -197,15 +175,10 @@ void Net::backPropagation(const vector<double> &target)
   }
 
   // Calculate the derivative of the hidden neurons
-  //cout << "Hidden neurons" << endl;
   Layer &hiddenLayer = m_layers[m_layers.size()-2];
-  //cout << "Hidden layer size: " << hiddenLayer.size() << endl;
   for (unsigned n = 0; n < m_layers[1].size()-1; n++) // Exclude the bias node
   {
-    //for (unsigned i = 0; i < m_layers[0].size()-1; i++)
-    //{
-      hiddenLayer[n].calculateHiddenGradient(m_layers.back(), m_layers[0]);
-    //}
+    hiddenLayer[n].calculateHiddenGradient(m_layers.back(), m_layers[0]);
   }
 
   for (unsigned n = 0; n < m_layers.size()-1; n++)  // No output layer opdate...
