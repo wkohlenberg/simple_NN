@@ -1,291 +1,309 @@
 #include <iostream>
-#include <vector>
 #include <cmath>
-#include <typeinfo>
+#include <random>
+#include <vector>
 
-#include "mnist.h"
 
-#define INPUTS		784
-#define HIDDEN		30
-#define OUTPUTS		10
+#define INPUT     2
+#define HIDDEN    2
+#define OUTPUT    2
 
 using namespace std;
 
 class Neuron;
-// Create layer map
-typedef vector<Neuron> Layer; 	// Neurons in the layers
-vector<Layer> m_layers;			// input, hidden and output layer
+typedef vector<Neuron> Layer;
 
 struct Connection
 {
-	double weight;
-	double deltaWeight;
+  double weight;
+  double deltaWeight;
 };
 
+// ======================================================
+// Class - Neuron
+// ======================================================
 class Neuron
 {
 public:
-	Neuron(unsigned index, unsigned numOutputs);
-	void setOutputVal(double value) { m_outputVal = value; }
-	double getOutputVal() const { return m_outputVal; }
-	unsigned getIndex() { return m_index; }
-	void feedForward(const Layer &prevLayer);
-	void calcOutputGradients(double targetVal);
-	void calcHiddenGradients(const Layer &nextLayer);
-	void updateInputWeights(Layer &prevLayer);
-	void getWeight(Layer &currLayer);
+  Neuron(unsigned outputs, unsigned index);
+  void setOutputVal(double value) {m_outputValue = value;}
+  double getOutputVal() const {return m_outputValue;}
+  void feedForward(const Layer &prevLayer);
+  void calculateOutputGradient(double target, Layer &prevLayer);
+  void calculateHiddenGradient(const Layer &nextLayer, Layer &prevLayer);
+  void setWeight(unsigned index, double weight);
+  void updateWeights();
+  void setDeltaWeight(double delta) {m_outputWeight[m_index].deltaWeight = delta;}
 
 private:
-	double randomWeight() { return rand() / double(RAND_MAX);}
+  double sigmoid(double value);
+  double derivativeSigmoid(double value);
 
-	double m_outputVal;
-	vector<Connection> m_outputWeights;
-	unsigned m_index;
-	double m_gradient;
-	static double eta;
-	static double alpha;
+  unsigned m_index;
+  double m_outputValue;
+  double m_gradient;
+  double m_target;
+  static double eta;           // Learning rate
+
+  vector<Connection> m_outputWeight;
 };
 
-double Neuron::eta = 0.15;
-double Neuron::alpha = 0.5;
+double Neuron::eta = 0.5;
 
-void Neuron::getWeight(Layer &currLayer)
+void Neuron::updateWeights()
 {
-	cout << currLayer[0].m_outputWeights[m_index].weight << endl;
-	cout << currLayer[0].m_outputWeights[m_index].deltaWeight << endl;
+  for (unsigned index = 0; index < m_outputWeight.size(); index++)
+  m_outputWeight[index].weight = m_outputWeight[index].weight - m_outputWeight[index].deltaWeight;
 }
 
-void Neuron::updateInputWeights(Layer &prevLayer)
+double Neuron::sigmoid(double value)
 {
-	// The weights to be updated are in the Connection container
-	for (unsigned n = 0; n < prevLayer.size(); n++)
-	{
-		Neuron &neuron = prevLayer[n];
-		double oldDeltaWeight = neuron.m_outputWeights[m_index].deltaWeight;
-		double newDeltaWeight = eta * neuron.getOutputVal() * m_gradient + alpha  *oldDeltaWeight;
+  return 1/(1 + exp(-value));
+}
 
-		neuron.m_outputWeights[m_index].deltaWeight = newDeltaWeight;
-		neuron.m_outputWeights[m_index].weight += newDeltaWeight;
+double Neuron::derivativeSigmoid(double value)
+{
+  return value*(1-value);
+}
 
-		// cout << neuron.m_outputWeights[m_index].weight << endl;
-	}
-	// cout << endl;
+void Neuron::setWeight(unsigned index, double weight)
+{
+  m_outputWeight[index].weight = weight;
+}
+
+void Neuron::calculateOutputGradient(double target, Layer &prevLayer)
+{
+  for (unsigned n = 0; n < prevLayer.size()-1; n++)
+  {
+    m_target = target;
+    double delta = -(m_target - m_outputValue);
+    m_gradient = delta * derivativeSigmoid(m_outputValue) * prevLayer[n].m_outputValue;
+    prevLayer[n].m_outputWeight[m_index].deltaWeight = m_gradient * eta;
+    /*cout << "Delta: " << delta << endl;
+    cout << "deltaWeight: " << prevLayer[n].m_outputWeight[m_index].deltaWeight << endl;
+    cout << "Gradient: " << m_gradient << endl << endl;*/
+  }
+}
+
+//void Neuron::calculateHiddenGradient(const Layer &nextLayer, double prevLayerOutput)
+void Neuron::calculateHiddenGradient(const Layer &nextLayer, Layer &prevLayer)
+{
+  double sum = 0.;
+  double delta = 0.;
+
+  //cout << "The next layer size: " << nextLayer.size() << endl;
+  for (unsigned n = 0; n < nextLayer.size() - 1; n++)   // Exclude the bias node
+  {
+    delta = -(nextLayer[n].m_target - nextLayer[n].m_outputValue);
+    sum += m_outputWeight[n].weight * derivativeSigmoid(nextLayer[n].m_outputValue) * delta;
+    /*cout << "Delta: " << delta << endl;
+    cout << "Weight: " << m_outputWeight[m_index].weight << endl;
+    cout << "Sig: " << derivativeSigmoid(nextLayer[n].m_outputValue) << endl << endl;*/
+  }
+
+  for (unsigned n = 0; n < prevLayer.size()-1; n++)
+  {
+    m_gradient = sum * Neuron::derivativeSigmoid(m_outputValue) * prevLayer[n].m_outputValue;
+    prevLayer[n].m_outputWeight[m_index].deltaWeight = m_gradient*eta;
+  }
+
+  /*cout << "Sum: " << sum << endl;
+  cout << "m_outputValue: " << m_outputValue << endl;
+  cout << "Gradient: " << m_gradient << endl;*/
 }
 
 void Neuron::feedForward(const Layer &prevLayer)
 {
-	double sum = 0.0;
+  double sum = 0.0;
+  // calculate the output*weights of neurons from previous Layer
+  for (unsigned i = 0; i < prevLayer.size(); i++)
+  {
+    sum += prevLayer[i].getOutputVal() * prevLayer[i].m_outputWeight[m_index].weight;
+    /*cout << prevLayer[i].getOutputVal() << " * "
+         << prevLayer[i].m_outputWeight[m_index].weight << " = "
+         << prevLayer[i].getOutputVal() * prevLayer[i].m_outputWeight[m_index].weight
+         << endl;*/
+  }
 
-	// Sum the previous layer's outputs (which are our inputs)
-	for (unsigned n = 0; n < prevLayer.size(); n++)
-	{
-		sum += prevLayer[n].getOutputVal() * prevLayer[n].m_outputWeights[m_index].weight;
-	}
-
-	m_outputVal = tanh(sum);
-	//cout << "OuputVal: " << prevLayer[1].getOutputVal() << endl;
-	//cout << "Weight: " << prevLayer[1].m_outputWeights[m_index].weight << endl;
+  m_outputValue = Neuron::sigmoid(sum);
+  //cout << "The neuron output is: " << Neuron::sigmoid(sum) << endl << endl;
 }
 
-void Neuron::calcHiddenGradients(const Layer &nextLayer)
+Neuron::Neuron(unsigned outputs, unsigned index)
 {
-	double dow;
+  // Real random
+  random_device rd;
+  mt19937 gen(rd());
+  uniform_real_distribution<> dis(0, 1);
 
-	for (unsigned n = 0; n < nextLayer.size() - 1; n++)
-	{
-		dow += m_outputWeights[n].weight * nextLayer[n].m_gradient;
-	}
+  for (unsigned i = 0; i < outputs; i++)
+  {
+    m_outputWeight.push_back(Connection());
+    m_outputWeight.back().weight = dis(gen);
+    cout << m_outputWeight.back().weight << endl;
+  }
 
-	m_gradient = dow * (1.0 - m_outputVal * m_outputVal);
+  m_index = index;
 }
 
-void Neuron::calcOutputGradients(double targetVal)
+// ======================================================
+// Class - Net
+// ======================================================
+class Net
 {
-	double delta = targetVal - m_outputVal;
-	m_gradient = delta * (1.0 - m_outputVal * m_outputVal);
-}
+public:
+  Net(const vector<unsigned> &topology);
+  void feedForward(const vector<double> &input);
+  void backPropagation(const vector<double> &target);
+  double printTotalError(const vector<double> &target);
+  void init();
 
-Neuron::Neuron(unsigned index, unsigned numOutputs)
+private:
+  vector<Layer> m_layers;
+
+};
+
+void Net::feedForward(const vector<double> &input)
 {
-	// Create a weight for every output
-	for (unsigned outputNum = 0; outputNum < numOutputs; outputNum++)
-	{
-		m_outputWeights.push_back(Connection());
-		m_outputWeights.back().weight = randomWeight();
-		// cout << m_outputWeights.back().weight << endl;
-	}
+  // Assign input values to input neurons
+  for (unsigned i = 0; i < input.size(); i++)
+  {
+    m_layers[0][i].setOutputVal(input[i]);
+    //cout << "Input neuron " << i << " has input value: " << m_layers[0][i].getOutputVal() << endl;
+  }
 
-	m_index = index;
+  // Start @ the first hidden layer after the input layer
+  // Per neuron calculate the output*weights of the last layer
+  for (unsigned layerNum = 1; layerNum < m_layers.size(); layerNum++)
+  {
+    //cout << "Layer: " << layerNum;
+    Layer &prevLayer = m_layers[layerNum - 1];
+    for (unsigned n = 0; n < m_layers[layerNum].size()-1; n++)
+    {
+      // Call feedForward function from Neuron class
+      //cout << " - Neuron: " << n << endl;
+      m_layers[layerNum][n].feedForward(prevLayer);
+    }
+  }
 }
 
+void Net::backPropagation(const vector<double> &target)
+{
+  //cout << "Output neurons" << endl;
+  for (unsigned n = 0; n < m_layers.back().size()-1; n++)
+  {
+    Layer &prevLayer = m_layers[1];
+    m_layers.back()[n].calculateOutputGradient(target[n], prevLayer);
+  }
+
+  // Calculate the derivative of the hidden neurons
+  //cout << "Hidden neurons" << endl;
+  Layer &hiddenLayer = m_layers[m_layers.size()-2];
+  //cout << "Hidden layer size: " << hiddenLayer.size() << endl;
+  for (unsigned n = 0; n < m_layers[1].size()-1; n++) // Exclude the bias node
+  {
+    //for (unsigned i = 0; i < m_layers[0].size()-1; i++)
+    //{
+      hiddenLayer[n].calculateHiddenGradient(m_layers.back(), m_layers[0]);
+    //}
+  }
+
+  for (unsigned n = 0; n < m_layers.size()-1; n++)  // No output layer opdate...
+  {
+    for (unsigned i = 0; i < m_layers[n].size()-1; i++) // Exclude bias nodes
+    {
+      m_layers[n][i].updateWeights();
+    }
+  }
+}
+
+double Net::printTotalError(const vector<double> &target)
+{
+  double sum = 0.;
+  for (unsigned n = 0; n < m_layers.back().size()-1; n++)
+  {
+    sum += -(target[n] - m_layers.back()[n].getOutputVal());
+  }
+
+  return sum;
+}
+
+void Net::init()
+{
+  m_layers[0][0].setWeight(0, 0.15);
+  m_layers[0][0].setWeight(1, 0.25);
+  m_layers[0][1].setWeight(0, 0.2);
+  m_layers[0][1].setWeight(1, 0.3);
+  m_layers[0][2].setWeight(0, 0.35);
+  m_layers[0][2].setWeight(1, 0.35);
+
+  m_layers[1][0].setWeight(0, 0.4);
+  m_layers[1][0].setWeight(1, 0.5);
+  m_layers[1][1].setWeight(0, 0.45);
+  m_layers[1][1].setWeight(1, 0.55);
+  m_layers[1][2].setWeight(0, 0.6);
+  m_layers[1][2].setWeight(1, 0.6);
+}
+
+Net::Net(const vector<unsigned> &topology)
+{
+  // Get the number of layers
+  unsigned numLayers = topology.size();
+  for (unsigned layerNum = 0; layerNum < numLayers; layerNum++)
+  {
+    m_layers.push_back(Layer());
+    // Get the number of outputs per neuron
+    unsigned numOutputs = layerNum == topology.size() ? 0 : topology[layerNum+1];
+
+    // Create Neuron with neuron outputs and index
+    for (unsigned neuronNum = 0; neuronNum <= topology[layerNum]; neuronNum++)    // = is adding a bias node
+    {
+      m_layers.back().push_back(Neuron(numOutputs, neuronNum));
+    }
+
+    // Set output of the bias node to 1.0
+    m_layers.back().back().setOutputVal(1.0);
+  }
+}
+
+// ======================================================
+// Main
+// ======================================================
 int main()
 {
-	//////////////////////////////////////////////////
-    // initialization
-	//////////////////////////////////////////////////
+  // Topology
+  vector<unsigned> topology;
+  topology.push_back(INPUT);
+  topology.push_back(HIDDEN);
+  topology.push_back(OUTPUT);
 
-	// Load training data
-	vector<int> trainingLabels;
-	readLabels(trainingLabels);
+  // Create the neural net
+  Net NN(topology);
+  NN.init();
 
-	// Topology e.g. (2, 4, 1)
-	vector<unsigned> topology;
-	topology.push_back(INPUTS);
-	topology.push_back(HIDDEN);
-	topology.push_back(OUTPUTS);
+  // Input value
+  vector<double> inputVals;
+  inputVals.push_back(0.05);
+  inputVals.push_back(0.1);
 
-	// Input vector
-	vector<int> inputVals;
+  // Feed forward
+  NN.feedForward(inputVals);
 
-	// Output vector
-	vector<int> targetVals (10);
+  // Target values
+  vector<double> targetVals;
+  targetVals.push_back(0.09);
+  targetVals.push_back(0.91);
 
-	// Settings
-	double m_recentAverageSmoothingFactor = 100.0;
+  // Backward propogation
+  cout << "Total error is " << NN.printTotalError(targetVals) << endl;
+  cout << endl << "backPropagation" << endl;
+  for (unsigned cnt = 0; cnt < 10000; cnt++)
+  {
+    NN.backPropagation(targetVals);
+    NN.feedForward(inputVals);
+  }
 
-	// Fill each layer with neurons
-	unsigned numLayers = topology.size();
-	for (unsigned layerNum = 0; layerNum < numLayers; layerNum++)
-	{
-		m_layers.push_back(Layer());
+  cout << "Total error is " << NN.printTotalError(targetVals) << endl;
 
-		// Outputs depends on the number of neurons in the next layer
-		unsigned numOutputs = 0;
-		if (layerNum != (topology.size() - 1))
-		{
-			numOutputs = topology[layerNum+1];
-		}
-
-		for(unsigned neuronNum = 0; neuronNum <= topology[layerNum]; neuronNum++)
-		{
-			m_layers.back().push_back(Neuron(neuronNum, numOutputs));
-			// cout << "Made a neuron! - Num: " << neuronNum << " Output: " << numOutputs << endl;
-		}
-
-		// Set output of the bias neuron to 1.0
-		m_layers.back().back().setOutputVal(1.0);
-	}
-
-	// Load dataset here
-	vector<int> labels;
-	vector<vector<int> > images;
-
-	readLabels(labels);
-	readImages(images);
-	cout << "Loaded the images and labels..." << endl;
-
-	//////////////////////////////////////////////////
-	// Loop through data
-	//////////////////////////////////////////////////
-	for (unsigned k = 0; k < 60000; k++)
-	{
-		// Load the first image from the dataset
-		getInput(inputVals, images, k);
-		getOutput(targetVals, labels, k);
-
-		for (unsigned i = 0; i < inputVals.size(); i++)
-		{
-			m_layers[0][i].setOutputVal((double)inputVals[i]);
-		}
-
-		// Feedforward - count the inputs from the previous layer
-		for (unsigned layerNum = 1; layerNum < m_layers.size(); layerNum++)
-		{
-			Layer &prevLayer = m_layers[layerNum - 1];
-			for (unsigned n = 0; n < m_layers[layerNum].size() - 1; ++n )
-			{
-				m_layers[layerNum][n].feedForward(prevLayer);
-			}
-		}
-
-		// Get the output results
-		vector<double> resultVals;
-		for (unsigned n = 0; n < m_layers.back().size() - 1; n++)
-		{
-			resultVals.push_back(m_layers.back()[n].getOutputVal());
-		}
-
-		// Get the weigths and nodes values of the first nodes
-		// Show input values
-		for (unsigned i = 0; i < inputVals.size(); i++)
-		{
-			cout << m_layers[0][i].getOutputVal() << endl;
-		}
-
-		// Calc weight of the hidden node = sum(input*weight)
-		double sum =0.0;
-		for( unsigned i = 0; i < m_layers[0].size(); i++)
-		{
-			sum += m_layers[0][i].getOutputVal() * m_layers[0][i].m_outputWeights[m_index].weight;
-		}
-		cout << "Value of the first node of the hidden layer: " << sum << endl;
-
-		// Backpropagation by calculating the overall net error
-		Layer &outputLayer = m_layers.back();
-		double m_error = 0.0;
-
-		for (unsigned n = 0; n < outputLayer.size() - 1; n++)
-		{
-			double delta = targetVals[n] - outputLayer[n].getOutputVal();
-			m_error += (delta * delta);
-		}
-
-		m_error /= (outputLayer.size() - 1);
-		m_error = sqrt(m_error);
-
-		// Implement a recent average measurement
-		double m_recentAverageError = 0.0;
-		m_recentAverageError =  (m_recentAverageError * m_recentAverageSmoothingFactor + m_error)
-					/ (m_recentAverageSmoothingFactor + 1.0);
-
-		// Calculate output layer gradients
-		for (unsigned n = 0; n < outputLayer.size() - 1; n++)
-		{
-			outputLayer[n].calcOutputGradients(targetVals[n]);
-		}
-
-		// Calc hidden layer gradients
-		for (unsigned layerNum = m_layers.size() - 2; layerNum > 0; layerNum--)
-		{
-			Layer &hiddenLayer = m_layers[layerNum];
-			Layer &nextLayer = m_layers[layerNum + 1];
-
-			for (unsigned n = 0; n < hiddenLayer.size(); n++)
-			{
-				hiddenLayer[n].calcHiddenGradients(nextLayer);
-			}
-		}
-
-		// For all layers from outputs to first hidden layer,
-		// update connection weights
-		for (unsigned layerNum = m_layers.size() - 1; layerNum > 0; layerNum--)
-		{
-			Layer &layer = m_layers[layerNum];
-			Layer &prevLayer = m_layers[layerNum - 1];
-
-			for (unsigned n = 0; n < layer.size() - 1; n++)
-			{
-				layer[n].updateInputWeights(prevLayer);
-			}
-		}
-
-		// Show output
-		cout << endl << 1 << " Label: " << endl;
-		vector<int>::iterator it;
-		for (it = targetVals.begin(); it < targetVals.end(); it++)
-		{
-			cout << *it << " ";
-		}
-
-		cout << endl << "Output: " << endl;
-		vector<double>::iterator itr;
-		for (itr = resultVals.begin(); itr < resultVals.end(); itr++)
-		{
-			cout << *itr << " ";
-		}
-		cout << endl;
-
-	}
-
-	return 0;
+  return 0;
 }
