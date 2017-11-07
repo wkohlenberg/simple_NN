@@ -1,0 +1,9 @@
+# Directories
+bin/
+output/
+
+# Text files
+*.txt
+
+# Executables
+*.exe
