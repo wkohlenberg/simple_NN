@@ -23,7 +23,7 @@ int main()
       input1 = dis(gen);
       input2 = dis(gen);
       trainData << "in: " << input1 << " " << input2 << endl;
-      trainData << "out: " << (input1^input2) << endl;
+      trainData << "out: " << (input1^input2)  << " " << !(input1^input2) << endl;
     }
 
     trainData.close();
