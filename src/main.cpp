@@ -3,7 +3,7 @@
 #include <random>
 #include <vector>
 #include <fstream>
-#include <cstdlib>
+#include <string>
 
 #define INPUT     2
 #define HIDDEN    2
@@ -27,6 +27,7 @@ class TrainData
 {
 public:
   TrainData(const string filename);
+  void readInput(vector<double> &input);
 
 private:
   ifstream m_trainFile;
@@ -35,6 +36,26 @@ private:
 TrainData::TrainData(const string filename)
 {
   m_trainFile.open(filename.c_str());
+  if (!m_trainFile.is_open())
+  {
+    cout << "Could not find file: " << filename.c_str() << endl;
+  }
+}
+
+void TrainData::readInput(vector<double> &input)
+{
+  // Clear input vector
+  input.clear();
+  string in;
+  m_trainFile >> in;
+  if (in.compare("in:") == 0)
+  {
+    double inputVal;
+    while(m_trainFile >> inputVal)
+    {
+      input.push_back(inputVal);
+    }
+  }
 }
 
 // ======================================================
@@ -269,7 +290,7 @@ int main()
   topology.push_back(OUTPUT);
 
   // Read training data file
-  TrainData trainData("../input/xor_train_data.txt");
+  TrainData trainData("input/xor_train_data.txt");
 
   // Create the neural net
   Net NN(topology);
@@ -278,6 +299,9 @@ int main()
   vector<double> inputVals;
   inputVals.push_back(0.05);
   inputVals.push_back(0.1);
+
+  trainData.readInput(inputVals);
+  trainData.readInput(inputVals);
 
   // Feed forward
   NN.feedForward(inputVals);
