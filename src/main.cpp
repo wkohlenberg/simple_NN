@@ -2,7 +2,8 @@
 #include <cmath>
 #include <random>
 #include <vector>
-
+#include <fstream>
+#include <cstdlib>
 
 #define INPUT     2
 #define HIDDEN    2
@@ -18,6 +19,23 @@ struct Connection
   double weight;
   double deltaWeight;
 };
+
+// ======================================================
+// Class - TrainData
+// ======================================================
+class TrainData
+{
+public:
+  TrainData(const string filename);
+
+private:
+  ifstream m_trainFile;
+};
+
+TrainData::TrainData(const string filename)
+{
+  m_trainFile.open(filename.c_str());
+}
 
 // ======================================================
 // Class - Neuron
@@ -250,9 +268,11 @@ int main()
   topology.push_back(HIDDEN);
   topology.push_back(OUTPUT);
 
+  // Read training data file
+  TrainData trainData("../input/xor_train_data.txt");
+
   // Create the neural net
   Net NN(topology);
-  NN.init();
 
   // Input value
   vector<double> inputVals;
