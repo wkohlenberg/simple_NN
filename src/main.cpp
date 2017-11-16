@@ -28,6 +28,7 @@ class TrainData
 public:
   TrainData(const string filename);
   void readInput(vector<double> &input);
+  void readTarget(vector<double> &target);
 
 private:
   ifstream m_trainFile;
@@ -46,15 +47,33 @@ void TrainData::readInput(vector<double> &input)
 {
   // Clear input vector
   input.clear();
+
   string in;
   m_trainFile >> in;
   if (in.compare("in:") == 0)
   {
     double inputVal;
-    while(m_trainFile >> inputVal)
-    {
-      input.push_back(inputVal);
-    }
+    m_trainFile >> inputVal;
+    input.push_back(inputVal);
+    m_trainFile >> inputVal;
+    input.push_back(inputVal);
+  }
+}
+
+void TrainData::readTarget(vector<double> &target)
+{
+  // Clear target vector
+  target.clear();
+
+  string out;
+  m_trainFile >> out;
+  if (out.compare("out:") == 0)
+  {
+    double targetVal;
+    m_trainFile >> targetVal;
+    target.push_back(targetVal);
+    m_trainFile >> targetVal;
+    target.push_back(targetVal);
   }
 }
 
@@ -295,21 +314,14 @@ int main()
   // Create the neural net
   Net NN(topology);
 
-  // Input value
-  vector<double> inputVals;
-  inputVals.push_back(0.05);
-  inputVals.push_back(0.1);
+  vector<double> inputVals;   // Input value
+  vector<double> targetVals;  // Target values
 
   trainData.readInput(inputVals);
-  trainData.readInput(inputVals);
+  trainData.readTarget(targetVals);
 
   // Feed forward
   NN.feedForward(inputVals);
-
-  // Target values
-  vector<double> targetVals;
-  targetVals.push_back(0.09);
-  targetVals.push_back(0.91);
 
   // Backward propogation
   cout << "Total error is " << NN.printTotalError(targetVals) << endl;
