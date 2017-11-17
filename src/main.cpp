@@ -6,8 +6,8 @@
 #include <string>
 
 #define INPUT     2
-#define HIDDEN    2
-#define OUTPUT    2
+#define HIDDEN    4
+#define OUTPUT    1
 
 using namespace std;
 
@@ -29,6 +29,7 @@ public:
   TrainData(const string filename);
   void readInput(vector<double> &input);
   void readTarget(vector<double> &target);
+  bool isEof() { return m_trainFile.eof(); }
 
 private:
   ifstream m_trainFile;
@@ -72,8 +73,6 @@ void TrainData::readTarget(vector<double> &target)
     double targetVal;
     m_trainFile >> targetVal;
     target.push_back(targetVal);
-    m_trainFile >> targetVal;
-    target.push_back(targetVal);
   }
 }
 
@@ -106,7 +105,7 @@ private:
   vector<Connection> m_outputWeight;
 };
 
-double Neuron::eta = 0.5;
+double Neuron::eta = 0.3;
 
 void Neuron::updateWeights()
 {
@@ -197,12 +196,23 @@ public:
   void feedForward(const vector<double> &input);
   void backPropagation(const vector<double> &target);
   double printTotalError(const vector<double> &target);
+  void getOutputValLayer(vector<double> &results);
   void init();
 
 private:
   vector<Layer> m_layers;
 
 };
+
+void Net::getOutputValLayer(vector<double> &results)
+{
+  results.clear();
+  Layer &outputLayer = m_layers.back();
+  for (unsigned i = 0; i < outputLayer.size()-1; i++) // No bias node output
+  {
+    results.push_back(outputLayer[i].getOutputVal());
+  }
+}
 
 void Net::feedForward(const vector<double> &input)
 {
@@ -297,6 +307,18 @@ Net::Net(const vector<unsigned> &topology)
   }
 }
 
+string showVectorValues(vector<double> value)
+{
+  string vStr;
+  for (unsigned int i = 0; i < value.size(); i++)
+  {
+    vStr.append(to_string(value[i]));
+    vStr.append(" ");
+  }
+
+  return vStr;
+}
+
 // ======================================================
 // Main
 // ======================================================
@@ -314,25 +336,29 @@ int main()
   // Create the neural net
   Net NN(topology);
 
-  vector<double> inputVals;   // Input value
+  vector<double> inputVals;   // Input values
   vector<double> targetVals;  // Target values
-
-  trainData.readInput(inputVals);
-  trainData.readTarget(targetVals);
-
-  // Feed forward
-  NN.feedForward(inputVals);
+  vector<double> outputVals;  // Output values
 
   // Backward propogation
-  cout << "Total error is " << NN.printTotalError(targetVals) << endl;
-  cout << endl << "backPropagation" << endl;
-  for (unsigned cnt = 0; cnt < 10000; cnt++)
+  //cout << "Total error is " << NN.printTotalError(targetVals) << endl;
+  //cout << endl << "backPropagation" << endl;
+  //for (unsigned cnt = 0; cnt < 10; cnt++)
+  while (!trainData.isEof())
   {
-    NN.backPropagation(targetVals);
-    NN.feedForward(inputVals);
-  }
+    trainData.readInput(inputVals);
+    trainData.readTarget(targetVals);
+    cout << "in: " << showVectorValues(inputVals) << endl;
+    cout << "out: " << showVectorValues(targetVals) << endl;
 
-  cout << "Total error is " << NN.printTotalError(targetVals) << endl;
+    // Feed forward
+    NN.feedForward(inputVals);
+    NN.getOutputValLayer(outputVals);
+    cout << "res: " << showVectorValues(outputVals) << endl;
+
+    NN.backPropagation(targetVals);
+    cout << "Total error is " << NN.printTotalError(targetVals) << endl;
+  }
 
   return 0;
 }
