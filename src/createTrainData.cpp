@@ -2,7 +2,7 @@
 #include <fstream>
 #include <random>
 
-#define TRAINING_INPUT        2000            // 2000 inputs and target outputs
+#define TRAINING_INPUT        10000            // 2000 inputs and target outputs
 
 using namespace std;
 
@@ -23,7 +23,7 @@ int main()
       input1 = dis(gen);
       input2 = dis(gen);
       trainData << "in: " << input1 << " " << input2 << endl;
-      trainData << "out: " << (input1^input2)  << " " << !(input1^input2) << endl;
+      trainData << "out: " << (input1^input2) << endl;
     }
 
     trainData.close();
