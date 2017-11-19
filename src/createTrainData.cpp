@@ -2,7 +2,7 @@
 #include <fstream>
 #include <random>
 
-#define TRAINING_INPUT        10000            // 2000 inputs and target outputs
+#define TRAINING_INPUT        2000            // 2000 inputs and target outputs
 
 using namespace std;
 
