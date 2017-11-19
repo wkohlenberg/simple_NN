@@ -8,6 +8,7 @@
 #define INPUT     2
 #define HIDDEN    4
 #define OUTPUT    1
+#define EPOCH     4      // Number of epochs
 
 using namespace std;
 
@@ -27,9 +28,11 @@ class TrainData
 {
 public:
   TrainData(const string filename);
-  void readInput(vector<double> &input);
-  void readTarget(vector<double> &target);
+  ~TrainData();
+  unsigned int readInput(vector<double> &input);
+  unsigned int readTarget(vector<double> &target);
   bool isEof() { return m_trainFile.eof(); }
+  void toBeginOfFile();
 
 private:
   ifstream m_trainFile;
@@ -44,7 +47,12 @@ TrainData::TrainData(const string filename)
   }
 }
 
-void TrainData::readInput(vector<double> &input)
+TrainData::~TrainData()
+{
+  m_trainFile.close();
+}
+
+unsigned int TrainData::readInput(vector<double> &input)
 {
   // Clear input vector
   input.clear();
@@ -59,9 +67,17 @@ void TrainData::readInput(vector<double> &input)
     m_trainFile >> inputVal;
     input.push_back(inputVal);
   }
+
+  return input.size();
 }
 
-void TrainData::readTarget(vector<double> &target)
+void TrainData::toBeginOfFile()
+{
+  m_trainFile.clear();
+  m_trainFile.seekg (0, m_trainFile.beg);
+}
+
+unsigned int TrainData::readTarget(vector<double> &target)
 {
   // Clear target vector
   target.clear();
@@ -74,6 +90,8 @@ void TrainData::readTarget(vector<double> &target)
     m_trainFile >> targetVal;
     target.push_back(targetVal);
   }
+
+  return target.size();
 }
 
 // ======================================================
@@ -340,24 +358,37 @@ int main()
   vector<double> targetVals;  // Target values
   vector<double> outputVals;  // Output values
 
-  // Backward propogation
-  //cout << "Total error is " << NN.printTotalError(targetVals) << endl;
-  //cout << endl << "backPropagation" << endl;
-  //for (unsigned cnt = 0; cnt < 10; cnt++)
-  while (!trainData.isEof())
+  unsigned int train_num = 1;
+  for (unsigned int epoch_num = 1; epoch_num <= EPOCH; epoch_num++)
   {
-    trainData.readInput(inputVals);
-    trainData.readTarget(targetVals);
-    cout << "in: " << showVectorValues(inputVals) << endl;
-    cout << "out: " << showVectorValues(targetVals) << endl;
+    // Train the neural net by training data
+    while (!trainData.isEof())
+    {
+      // Last row of file is empty
+      if (trainData.readInput(inputVals) != topology[0])
+      {
+        break;
+      }
 
-    // Feed forward
-    NN.feedForward(inputVals);
-    NN.getOutputValLayer(outputVals);
-    cout << "res: " << showVectorValues(outputVals) << endl;
+      trainData.readTarget(targetVals);
+      cout << endl << "Epoch: " << epoch_num << "; Train num: " << train_num << endl;
+      cout << "in: " << showVectorValues(inputVals) << endl;
+      cout << "out: " << showVectorValues(targetVals) << endl;
 
-    NN.backPropagation(targetVals);
-    cout << "Total error is " << NN.printTotalError(targetVals) << endl;
+      // Feed forward
+      NN.feedForward(inputVals);
+      NN.getOutputValLayer(outputVals);
+      cout << "res: " << showVectorValues(outputVals) << endl;
+
+      // Backpropogation
+      NN.backPropagation(targetVals);
+      cout << "Total error is " << NN.printTotalError(targetVals) << endl;
+
+      train_num++;
+    }
+
+    train_num = 1;
+    trainData.toBeginOfFile();
   }
 
   return 0;
