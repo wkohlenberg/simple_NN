@@ -22,6 +22,39 @@ struct Connection
 };
 
 // ======================================================
+// Class - LogData
+// ======================================================
+class LogData
+{
+public:
+  LogData(const string filename);
+  ~LogData();
+  void write(double value);
+
+private:
+  ofstream m_logFile;
+};
+
+LogData::LogData(const string filename)
+{
+  m_logFile.open(filename.c_str());
+  if (!m_logFile.is_open())
+  {
+    cout << "Could not find or open file: " << filename.c_str() << endl;
+  }
+}
+
+LogData::~LogData()
+{
+  m_logFile.close();
+}
+
+void LogData::write(double value)
+{
+  m_logFile << value << endl;
+}
+
+// ======================================================
 // Class - TrainData
 // ======================================================
 class TrainData
@@ -43,7 +76,7 @@ TrainData::TrainData(const string filename)
   m_trainFile.open(filename.c_str());
   if (!m_trainFile.is_open())
   {
-    cout << "Could not find file: " << filename.c_str() << endl;
+    cout << "Could not find or open file: " << filename.c_str() << endl;
   }
 }
 
@@ -337,6 +370,9 @@ int main()
   // Read training data file
   TrainData trainData("input/xor_train_data.txt");
 
+  // Open log file
+  LogData log("output/log.txt");
+
   // Create the neural net
   Net NN(topology);
 
@@ -369,6 +405,7 @@ int main()
       // Backpropogation
       NN.backPropagation(targetVals);
       cout << "Total error is " << NN.printTotalError(targetVals) << endl;
+      log.write(NN.printTotalError(targetVals));
 
       train_num++;
     }
