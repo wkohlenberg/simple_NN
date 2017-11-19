@@ -103,6 +103,7 @@ public:
   Neuron(unsigned outputs, unsigned index);
   void setOutputVal(double value) {m_outputValue = value;}
   double getOutputVal() const {return m_outputValue;}
+  double getError() const {return m_error;}
   void feedForward(const Layer &prevLayer);
   void calculateOutputGradient(double target, Layer &prevLayer);
   void calculateHiddenGradient(const Layer &nextLayer, Layer &prevLayer);
@@ -118,6 +119,7 @@ private:
   double m_outputValue;
   double m_gradient;
   double m_target;
+  double m_error;
   static double eta;           // Learning rate
 
   vector<Connection> m_outputWeight;
@@ -151,6 +153,7 @@ void Neuron::calculateOutputGradient(double target, Layer &prevLayer)
   for (unsigned n = 0; n < prevLayer.size()-1; n++)
   {
     m_target = target;
+    m_error = m_target - m_outputValue;
     double delta = -(m_target - m_outputValue);
     m_gradient = delta * derivativeSigmoid(m_outputValue) * prevLayer[n].m_outputValue;
     prevLayer[n].m_outputWeight[m_index].deltaWeight = m_gradient * eta;
@@ -164,6 +167,7 @@ void Neuron::calculateHiddenGradient(const Layer &nextLayer, Layer &prevLayer)
 
   for (unsigned n = 0; n < nextLayer.size() - 1; n++)   // Exclude the bias node
   {
+    m_error = m_target - m_outputValue;
     delta = -(nextLayer[n].m_target - nextLayer[n].m_outputValue);
     sum += m_outputWeight[n].weight * derivativeSigmoid(nextLayer[n].m_outputValue) * delta;
   }
@@ -280,7 +284,7 @@ double Net::printTotalError(const vector<double> &target)
   double sum = 0.;
   for (unsigned n = 0; n < m_layers.back().size()-1; n++)
   {
-    sum += -(target[n] - m_layers.back()[n].getOutputVal());
+    sum += 0.5*pow(m_layers.back()[n].getError(), 2);
   }
 
   return sum;
