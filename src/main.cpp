@@ -250,13 +250,27 @@ public:
   Net(const vector<unsigned> &topology);
   void feedForward(const vector<double> &input);
   void backPropagation(const vector<double> &target);
-  double printTotalError(const vector<double> &target);
+  double calcTotalError(const vector<double> &target);
+  double getAvgError() { return m_avgError;}
   void getOutputValLayer(vector<double> &results);
 
 private:
+  double averageError();
+  double m_avgError;
+  double m_error;
+  static double m_smoothingFactor;
   vector<Layer> m_layers;
 
 };
+
+double Net::m_smoothingFactor = 100;
+
+double Net::averageError()
+{
+  m_avgError = (m_avgError * m_smoothingFactor + m_error) / (m_smoothingFactor + 1.0);
+
+  return m_avgError;
+}
 
 void Net::getOutputValLayer(vector<double> &results)
 {
@@ -290,6 +304,9 @@ void Net::feedForward(const vector<double> &input)
 
 void Net::backPropagation(const vector<double> &target)
 {
+  calcTotalError(target);
+  averageError();
+
   for (unsigned n = 0; n < m_layers.back().size()-1; n++)
   {
     Layer &prevLayer = m_layers[1];
@@ -312,13 +329,15 @@ void Net::backPropagation(const vector<double> &target)
   }
 }
 
-double Net::printTotalError(const vector<double> &target)
+double Net::calcTotalError(const vector<double> &target)
 {
   double sum = 0.;
   for (unsigned n = 0; n < m_layers.back().size()-1; n++)
   {
-    sum += 0.5*pow(m_layers.back()[n].getError(), 2);
+    sum += 0.5*pow(target[n]-m_layers.back()[n].getError(), 2);
   }
+
+  m_error = sum;
 
   return sum;
 }
@@ -342,6 +361,9 @@ Net::Net(const vector<unsigned> &topology)
     // Set output of the bias node to 1.0
     m_layers.back().back().setOutputVal(1.0);
   }
+
+  // Init variables
+  m_avgError = 0.0;
 }
 
 string showVectorValues(vector<double> value)
@@ -404,8 +426,8 @@ int main()
 
       // Backpropogation
       NN.backPropagation(targetVals);
-      cout << "Total error is " << NN.printTotalError(targetVals) << endl;
-      log.write(NN.printTotalError(targetVals));
+      cout << "Total error is " << NN.getAvgError() << endl;
+      log.write(NN.getAvgError());
 
       train_num++;
     }
