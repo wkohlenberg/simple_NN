@@ -215,7 +215,6 @@ public:
   void backPropagation(const vector<double> &target);
   double printTotalError(const vector<double> &target);
   void getOutputValLayer(vector<double> &results);
-  void init();
 
 private:
   vector<Layer> m_layers;
@@ -285,23 +284,6 @@ double Net::printTotalError(const vector<double> &target)
   }
 
   return sum;
-}
-
-void Net::init()
-{
-  m_layers[0][0].setWeight(0, 0.15);
-  m_layers[0][0].setWeight(1, 0.25);
-  m_layers[0][1].setWeight(0, 0.2);
-  m_layers[0][1].setWeight(1, 0.3);
-  m_layers[0][2].setWeight(0, 0.35);
-  m_layers[0][2].setWeight(1, 0.35);
-
-  m_layers[1][0].setWeight(0, 0.4);
-  m_layers[1][0].setWeight(1, 0.5);
-  m_layers[1][1].setWeight(0, 0.45);
-  m_layers[1][1].setWeight(1, 0.55);
-  m_layers[1][2].setWeight(0, 0.6);
-  m_layers[1][2].setWeight(1, 0.6);
 }
 
 Net::Net(const vector<unsigned> &topology)
